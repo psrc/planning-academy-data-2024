@@ -1,0 +1,22 @@
+﻿lodes_field,naics_code,naics_name,simplified_sector
+C000,0,Total Jobs,Total
+CNS01,11,"Agriculture, Forestry, Fishing and Hunting",Construction / Resources
+CNS02,21,"Mining, Quarrying, and Oil and Gas Extraction",Construction / Resources
+CNS03,22,Utilities,"Wholesale, Transportation & Utilities"
+CNS04,23,Construction,Construction / Resources
+CNS05,31-33,Manufacturing,Manufacturing
+CNS06,42,Wholesale Trade,"Wholesale, Transportation & Utilities"
+CNS07,44-45,Retail Trade,Retail
+CNS08,48-49,Transportation and Warehousing,"Wholesale, Transportation & Utilities"
+CNS09,51,Information,Professional Services
+CNS10,52,Finance and Insurance,"Finance, Insurance & Real Estate"
+CNS11,53,Real Estate and Rental and Leasing,"Finance, Insurance & Real Estate"
+CNS12,54,"Professional, Scientific, and Technical Services",Professional Services
+CNS13,55,Management of Companies and Enterprises,Professional Services
+CNS14,56,Administrative and Support and Waste Management and Remediation Services,Professional Services
+CNS15,61,Educational Services,Public Education
+CNS16,62,Health Care and Social Assistance,Health & Social Services
+CNS17,71,"Arts, Entertainment, and Recreation","Accommodation, Entertainment & Food Services"
+CNS18,72,Accommodation and Food Services,"Accommodation, Entertainment & Food Services"
+CNS19,81,Other Services [except Public Administration],Other Services
+CNS20,92,Public Administration,Government
