@@ -143,3 +143,142 @@ geography_estimate_from_bg <- function(split_df=blockgroup_splits, estimate_df=b
   return(c)
   
 }
+
+transit_stops_by_mode <- function(year, service_change) {
+  
+  hct_file <- "data/hct_ids.csv"
+  hct <- read_csv(hct_file, show_col_types = FALSE) 
+  
+  if (tolower(service_change)=="spring") {data_month = "05"} else (data_month = "10")
+  
+  options(dplyr.summarise.inform = FALSE)
+  gtfs_file <- paste0("X:/DSA/GTFS/",tolower(service_change),"/",as.character(year),".zip")
+  
+  # Open Regional GTFS File and load into memory
+  print(str_glue("Opening the {service_change} {year} GTFS archive."))
+  gtfs <- read_gtfs(path=gtfs_file, files = c("trips","stops","stop_times", "routes", "shapes"))
+  
+  # Load Stops
+  print(str_glue("Getting the {service_change} {year} stops into a tibble." ))
+  stops <- as_tibble(gtfs$stops) |> 
+    mutate(stop_id = str_to_lower(stop_id)) |>
+    select("stop_id", "stop_name", "stop_lat", "stop_lon")
+  
+  # Load Routes, add HCT modes and update names and agencies
+  print(str_glue("Getting the {service_change} {year} routes into a tibble." ))
+  routes <- as_tibble(gtfs$routes) |> 
+    mutate(route_id = str_to_lower(route_id)) |>
+    select("route_id", "agency_id","route_short_name", "route_long_name", "route_type")
+  
+  print(str_glue("Adding High-Capacity Transit codes to the {service_change} {year} routes"))
+  routes <- left_join(routes, hct, by="route_id") |>
+    mutate(type_code = case_when(
+      is.na(type_code) ~ route_type,
+      !(is.na(type_code)) ~ type_code)) |>
+    mutate(route_name = case_when(
+      is.na(route_name) ~ route_short_name,
+      !(is.na(route_name)) ~ route_name)) |>
+    mutate(type_name = case_when(
+      is.na(type_name) ~ "Bus",
+      !(is.na(type_name)) ~ type_name)) |>
+    mutate(agency_name = case_when(
+      !(is.na(agency_name)) ~ agency_name,
+      is.na(agency_name) & str_detect(route_id, "ct") ~ "Community Transit",
+      is.na(agency_name) & str_detect(route_id, "et") ~ "Everett Transit",
+      is.na(agency_name) & str_detect(route_id, "kc") ~ "King County Metro",
+      is.na(agency_name) & str_detect(route_id, "kt") ~ "Kitsap Transit",
+      is.na(agency_name) & str_detect(route_id, "pt") ~ "Pierce Transit",
+      is.na(agency_name) & str_detect(route_id, "st") ~ "Sound Transit")) |>
+    select("route_id", "route_name", "type_name", "type_code", "agency_name")
+  
+  # Trips are used to get route id onto stop times
+  print(str_glue("Getting the {service_change} {year} trips into a tibble to add route ID to stop times." ))
+  trips <- as_tibble(gtfs$trips) |> 
+    mutate(route_id = str_to_lower(route_id)) |>
+    select("trip_id", "route_id")
+  
+  trips <- left_join(trips, routes, by=c("route_id"))
+  
+  # Clean Up Stop Times to get routes and mode by stops served
+  print(str_glue("Getting the {service_change} {year} stop times into a tibble to add route information." ))
+  stoptimes <- as_tibble(gtfs$stop_times) |>
+    mutate(stop_id = str_to_lower(stop_id)) |>
+    select("trip_id", "stop_id")
+  
+  # Get Mode and agency from trips to stops
+  print(str_glue("Getting unique stop list by modes for the {service_change} {year}." ))
+  stops_by_mode <- left_join(stoptimes, trips, by=c("trip_id")) |>
+    select("stop_id", "type_code", "type_name", "agency_name") |>
+    distinct()
+  
+  stops_by_mode <- left_join(stops_by_mode, stops, by=c("stop_id")) |>
+    mutate(date=mdy(paste0(data_month,"-01-",year)))
+  
+  print(str_glue("All Done."))
+  
+  return(stops_by_mode)
+  
+}
+
+transit_routes_by_mode <- function(year, service_change) {
+  
+  hct_file <- "data/hct_ids.csv"
+  hct <- read_csv(hct_file, show_col_types = FALSE) 
+  
+  if (tolower(service_change)=="spring") {data_month = "05"} else (data_month = "10")
+  
+  options(dplyr.summarise.inform = FALSE)
+  gtfs_file <- paste0("X:/DSA/GTFS/",tolower(service_change),"/",as.character(year),".zip")
+  
+  # Open Regional GTFS File and load into memory
+  print(str_glue("Opening the {service_change} {year} GTFS archive."))
+  gtfs <- read_gtfs(path=gtfs_file, files = c("trips","stops","stop_times", "routes", "shapes"))
+  
+  # Load Routes, add HCT modes and update names and agencies
+  print(str_glue("Getting the {service_change} {year} routes into a tibble." ))
+  routes <- as_tibble(gtfs$routes) |> 
+    mutate(route_id = str_to_lower(route_id)) |>
+    select("route_id", "agency_id","route_short_name", "route_long_name", "route_type")
+  
+  print(str_glue("Adding High-Capacity Transit codes to the {service_change} {year} routes"))
+  routes <- left_join(routes, hct, by="route_id") |>
+    mutate(type_code = case_when(
+      is.na(type_code) ~ route_type,
+      !(is.na(type_code)) ~ type_code)) |>
+    mutate(route_name = case_when(
+      is.na(route_name) ~ route_short_name,
+      !(is.na(route_name)) ~ route_name)) |>
+    mutate(type_name = case_when(
+      is.na(type_name) ~ "Bus",
+      !(is.na(type_name)) ~ type_name)) |>
+    mutate(agency_name = case_when(
+      !(is.na(agency_name)) ~ agency_name,
+      is.na(agency_name) & str_detect(route_id, "ct") ~ "Community Transit",
+      is.na(agency_name) & str_detect(route_id, "et") ~ "Everett Transit",
+      is.na(agency_name) & str_detect(route_id, "kc") ~ "King County Metro",
+      is.na(agency_name) & str_detect(route_id, "kt") ~ "Kitsap Transit",
+      is.na(agency_name) & str_detect(route_id, "pt") ~ "Pierce Transit",
+      is.na(agency_name) & str_detect(route_id, "st") ~ "Sound Transit")) |>
+    select("route_id", "route_name", "type_name", "type_code", "agency_name")
+  
+  # Load Route Shapes to get Mode information on layers
+  route_lyr <- shapes_as_sf(gtfs$shapes)
+  
+  # Trips are used to get route id onto shapes
+  print(str_glue("Getting the {service_change} {year} trips into a tibble to add route ID to stop times." ))
+  trips <- as_tibble(gtfs$trips) |> 
+    mutate(route_id = str_to_lower(route_id)) |>
+    select("route_id", "shape_id") |>
+    distinct()
+  
+  route_lyr <- left_join(route_lyr, trips, by=c("shape_id"))
+  
+  # Get Mode and agency from routes to shapes
+  print(str_glue("Getting route details onto shapes for the {service_change} {year}." ))
+  route_lyr <- left_join(route_lyr, routes, by=c("route_id")) |> mutate(date=mdy(paste0(data_month,"-01-",year)))
+  
+  print(str_glue("All Done."))
+  
+  return(route_lyr)
+  
+}
