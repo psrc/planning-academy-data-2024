@@ -155,3 +155,23 @@ saveRDS(transit_stop_data, "data/transit_stop_data.rds")
 transit_stop_lyr <- transit_stop_lyr |> st_transform(wgs84)
 saveRDS(transit_stop_lyr, "data/transit_stop_lyr.rds")
 
+# Transit Routes ----------------------------------------------------------
+transit_route <- NULL
+for(y in gtfs_years) {
+  s <- transit_routes_by_mode(year = y, service_change = gtfs_service)
+  if(is.null(transit_route)) {transit_route <- s} else {transit_route <- bind_rows(transit_route, s)}
+  rm(s)
+}
+
+transit_route_lyr <- transit_route |> 
+  st_transform(wgs84) |>
+  mutate(type_name = case_when(
+    type_name == "ST Express" ~ "Bus",
+    type_name == "BRT" ~ "Bus Rapid Transit",
+    type_name %in% c("Streetcar", "Light Rail") ~ "Light Rail or Streetcar",
+    type_name %in% c("Passenger Ferry", "Auto Ferry") ~ "Ferry",
+    type_name == "Commuter Rail" ~ "Commuter Rail",
+    type_name == "Bus" ~ "Bus"))
+
+saveRDS(transit_route_lyr, "data/transit_route_lyr.rds")
+
